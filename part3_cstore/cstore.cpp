@@ -12,16 +12,12 @@ void create_archive(CStoreObject cstore) {
         std::vector<unsigned long long int> file_sizes = cstore.get_file_sizes();
         std::vector<std::string> encrypted_file_datas = cstore.get_encrypted_file_datas();
 
+        remove(archive_name_ptr); // remove archive in case it already exists, so we can create a new one
         FILE* archive = fopen(archive_name_ptr, "wb"); // open archive in binary write mode
 
-        // printf("\nin create:\n\nMAGIC num: ");
-        // fwrite(MAGIC, sizeof(char), 8, stdout);
-        // printf("\nsignature: ");
-        // fwrite(signature, sizeof(char), SHA256_BLOCK_SIZE, stdout);
-        // printf("\nnum_files: ");
-        // fwrite(&num_files, sizeof(unsigned int), 1, stdout);
-        // putc('\n', stdout);
-
+        if (archive == NULL) {
+                cstore.print_error_and_quit("Error: Could not create archive file.");
+        }
 
         if (fwrite(MAGIC, sizeof(char), 8, archive) != 8) { // write MAGIC ("./cstore") to beginning of file
                 fclose(archive);
@@ -33,7 +29,7 @@ void create_archive(CStoreObject cstore) {
         }
         if (fwrite(&num_files, sizeof(unsigned int), 1, archive) != 1) {
                 fclose(archive);
-                cstore.print_error_and_quit("Error: Could not write signature to archive.");
+                cstore.print_error_and_quit("Error: Could not write num_files to archive.");
         }
 
         for (unsigned int i = 0; i < num_files; i++) {
@@ -41,9 +37,6 @@ void create_archive(CStoreObject cstore) {
                 unsigned int curr_file_name_length = strlen(curr_file_name);
                 unsigned long long int curr_file_size = file_sizes[i];
                 const char* curr_file_data = encrypted_file_datas[i].c_str();
-
-                // printf("create: filename is %s\n", curr_file_name);
-                // printf("create: filename size is %d\n", curr_file_name_length);
 
                 if (fwrite(curr_file_name, sizeof(char), curr_file_name_length, archive) != curr_file_name_length) { // write file name to archive
                         fclose(archive);
@@ -63,14 +56,6 @@ void create_archive(CStoreObject cstore) {
                         fclose(archive);
                         cstore.print_error_and_quit("Error: could not write ciphertext to archive.");
                 }
-                
-                // printf("curr_file_name: ");
-                // fwrite(curr_file_name, sizeof(char), curr_file_name_length, stdout);
-                // printf("\ncurr_file_size: ");
-                // fwrite(&curr_file_size, sizeof(unsigned long long int), 1, stdout);
-                // printf("\ncurr_file_data: ");
-                // fwrite(curr_file_data, sizeof(char), curr_file_size, stdout);
-                // putc('\n', stdout);
         }
 
         // Check size of temp_archive
@@ -104,21 +89,15 @@ int main(int argc, char* argv[])
                         }
 
                 } else {
-                        // std::cerr << "Archive does not exist." << std::endl;
+                        std::cerr << "Archive does not exist." << std::endl;
                         return EXIT_FAILURE;
                 }
         } else if (args.get_action() == "add") {
-                // TODO: CONFIRM THAT THERE IS NO ISSUE WITH 20 CHARACTER FILE NAMES
-                if (archive_exists) {
-                        std::cerr << "Cannot add to an archive that already exists." << std::endl;
-                        return EXIT_FAILURE;
-                } else {
-                        CStoreObject cstore = CStoreObject(args, archive_exists);
-                        create_archive(cstore);
-                }
+                CStoreObject cstore = CStoreObject(args, archive_exists);
+                create_archive(cstore);
         } else if (args.get_action() == "extract") {
                 if (archive_exists == false) {
-                        // std::cerr << "Archive does not exist." << std::endl;
+                        std::cerr << "Archive does not exist." << std::endl;
                         return EXIT_FAILURE;
                 } else {
                         CStoreObject cstore = CStoreObject(args, archive_exists);

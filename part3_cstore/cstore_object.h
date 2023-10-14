@@ -35,9 +35,9 @@ class CStoreObject
         std::vector<unsigned long long int> get_file_sizes();
         std::vector<std::string>            get_encrypted_file_datas();
         void                                calculate_new_signature(char * new_signature);
+        void                                encrypt_and_add_file_to_CStoreObject(std::string file);
 
         CStoreObject(CStoreArgs args, bool archive_exists);
-        ~CStoreObject();
 };
 
 

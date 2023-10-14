@@ -5,6 +5,42 @@ void CStoreObject::print_error_and_quit(std::string err) {
         exit(1);
 }
 
+void CStoreObject::encrypt_and_add_file_to_CStoreObject(std::string file) {
+        std::ifstream curr_file(file);
+        if (!curr_file.good()) {
+                curr_file.close();
+                print_error_and_quit("Error: A file does not exist.");
+        }
+        if (curr_file.is_open()) {
+                curr_file.seekg(0, std::ios::end);
+                if (curr_file.tellg() == 0) {
+                        curr_file.close();
+                        print_error_and_quit("Error: A file is empty.");
+                }
+        } else {
+                print_error_and_quit("Error: Could not open file.");
+        }
+        curr_file.close();
+
+        auto encrypted = encrypt_file(file, password);
+
+        if (encrypted.ciphertext.size() == 0) {
+                print_error_and_quit("Error: Could not open file while encrypting.");
+        }
+
+        std::vector<char> data_to_write;
+        unsigned long long int curr_file_size = AES_BLOCK_SIZE + encrypted.ciphertext.size();
+        data_to_write.resize(curr_file_size);
+        memcpy((char *) data_to_write.data(), encrypted.IV, AES_BLOCK_SIZE);
+        memcpy((char *) data_to_write.data()+AES_BLOCK_SIZE, 
+                encrypted.ciphertext.data(), encrypted.ciphertext.size());
+        
+        file_sizes.push_back(AES_BLOCK_SIZE + encrypted.ciphertext.size()); // append file_size to file_sizes
+        std::string encrypted_file_data(data_to_write.begin(), data_to_write.end()); // converts from vector of chars to a string
+        
+        encrypted_file_datas.push_back(encrypted_file_data); // appends encrypted file data, including IV
+}
+
 void CStoreObject::calculate_new_signature(char * new_signature) {
         char null_char = '\0';
 
@@ -79,7 +115,7 @@ void CStoreObject::calculate_new_signature(char * new_signature) {
  * w/in CStoreObject
  */
 CStoreObject::CStoreObject(CStoreArgs args, bool archive_exists) {
-        if (archive_exists) { // Action cannot be add in this if statement
+        if (archive_exists) {
                 // Read directly from archive and populate CStoreObject
                 
                 archive_name = args.get_archive_name();
@@ -115,11 +151,11 @@ CStoreObject::CStoreObject(CStoreArgs args, bool archive_exists) {
 
                 // BEGIN INTEGRITY CHECK
 
-                if (args.get_action() == "extract") {
+                if (args.get_action() != "list") {
                         password = args.get_password();
                         char new_signature[SHA256_BLOCK_SIZE] = "0123456789012345678901234567890";
                         
-                        // calc archive _size
+                        // calc archive_size
                         fseek(archive, 0, SEEK_END);
                         long unsigned archive_size = ftell(archive);
                         
@@ -213,157 +249,34 @@ CStoreObject::CStoreObject(CStoreArgs args, bool archive_exists) {
 
                         encrypted_file_datas.push_back(curr_file_data_string);
                 }
-                // OLD METHOD OF INTEGRITY CHECK
-                // BEGIN INTEGRITY CHECK
-                // if (args.get_action() == "extract") {
-                //         // printf("Begin integrity check\n");
-                //         password = args.get_password();
-                //         char new_signature[SHA256_BLOCK_SIZE] = "0123456789012345678901234567890";
-                //         // printf("pre_initialization new_signature: ");
-                //         // fwrite(new_signature, sizeof(char), SHA256_BLOCK_SIZE, stdout);
-                //         calculate_new_signature(new_signature);
-                //         // printf("\noriginal_signature: ");
-                //         // fwrite(signature, sizeof(char), SHA256_BLOCK_SIZE, stdout);
-
-                //         // printf("\nintegritycheck_signature: ");
-                //         // fwrite(new_signature, sizeof(char), SHA256_BLOCK_SIZE, stdout);
-                //         // fflush(stdout);
-                //         for (int i=0; i < SHA256_BLOCK_SIZE; i++) {
-                //                 if (signature[i] != new_signature[i]) {
-                //                         // printf("signature from archive: ");
-                //                         // fwrite(signature, sizeof(char), SHA256_BLOCK_SIZE, stdout);
-                //                         // printf("\nnew_signature: ");
-                //                         // fwrite(new_signature, sizeof(char), SHA256_BLOCK_SIZE, stdout);
-                //                         fclose(archive);
-                //                         print_error_and_quit("Signatures do not match. File has been tampered with.");
-                //                 }
-                //         }
-                // }        
-                // END INTEGRITY CHECK
                 fclose(archive);
+
+                // case where we are adding files to an already existing archive
+                if (args.get_action() == "add") {
+                        num_files += args.get_files().size();
+                        std::vector<std::string> new_files = args.get_files();
+                        for (const std::string& file_name : new_files) {
+                                // checks file exists and is not empty. Then, it adds encrypted_file_data and file_size to CStoreObject
+                                encrypt_and_add_file_to_CStoreObject(file_name);
+
+                                // add file name to file_names
+                                file_names.push_back(file_name);
+                        }
+                        calculate_new_signature(signature); // need to update signature value since we are adding files to the archive
+                }
         } else {
                 // action is 'add' and archive does not exist
                 archive_name   = args.get_archive_name();
                 num_files      = args.get_files().size();
                 file_names     = args.get_files();
                 password       = args.get_password();
-                // char null_char = '\0';
-                
-                // // temp_archive is the file we use to generate the signature
-                // FILE* temp_archive = fopen("temp_archive", "wb");
-                // if (temp_archive == NULL) {
-                //         print_error_and_quit("Error: Could not open temp_archive.");
-                // }
-                // if (fwrite(&num_files, sizeof(unsigned int), 1, temp_archive) != 1) {
-                //         print_error_and_quit("Error: Could not write num_files to temp_archive.");
-                // }
 
                 // iterate through every file
-
-                for (const std::string& str : file_names) {
-                        // str is the current file
-
-
-
-                        // check if file is empty and if it exists
-                        std::ifstream curr_file(str);
-                        if (!curr_file.good()) {
-                                curr_file.close();
-                                print_error_and_quit("Error: A file does not exist.");
-                        }
-                        if (curr_file.is_open()) {
-                                curr_file.seekg(0, std::ios::end);
-                                if (curr_file.tellg() == 0) {
-                                        curr_file.close();
-                                        print_error_and_quit("Error: A file is empty.");
-                                }
-                        } else {
-                                print_error_and_quit("Error: Could not open file.");
-                        }
-                        curr_file.close();
-
-
-                        auto encrypted = encrypt_file(str, password);
-
-                        // printf("encrypted after adding. IV then ciphertext.\n");
-                        // print_hex(encrypted.IV, AES_BLOCK_SIZE);
-                        // print_hex(encrypted.ciphertext.data(), encrypted.ciphertext.size());
-
-
-                        if (encrypted.ciphertext.size() == 0) {
-                                print_error_and_quit("Error: Could not open file while encrypting.");
-                        }
-
-                        std::vector<char> data_to_write;
-                        unsigned long long int curr_file_size = AES_BLOCK_SIZE + encrypted.ciphertext.size();
-                        data_to_write.resize(curr_file_size);
-                        memcpy((char *) data_to_write.data(), encrypted.IV, AES_BLOCK_SIZE);
-                        memcpy((char *) data_to_write.data()+AES_BLOCK_SIZE, 
-                                encrypted.ciphertext.data(), encrypted.ciphertext.size());
-                        
-                        file_sizes.push_back(AES_BLOCK_SIZE + encrypted.ciphertext.size()); // append file_size to file_sizes
-                        std::string encrypted_file_data(data_to_write.begin(), data_to_write.end()); // converts from vector of chars to a string
-                        
-                        // printf("confirm string version is correct\n");
-                        // const char * temp_file_data = encrypted_file_data.c_str(); 
-                        // print_hex(temp_file_data, strlen(temp_file_data));
-
-
-                        encrypted_file_datas.push_back(encrypted_file_data); // appends encrypted file data, including IV
-                        
-                        // const char* curr_file_name = str.c_str();
-                        // unsigned int curr_file_name_length = strlen(curr_file_name);
-
-                        // printf("temp: filename is %s\n", curr_file_name);
-                        // printf("temp: filename size is %d\n", curr_file_name_length);
-
-                        // if (fwrite(curr_file_name, sizeof(char), curr_file_name_length, temp_archive) != curr_file_name_length) { // write file name to temp_archive
-                        //         print_error_and_quit("Error: could not write fil_name to temp_archive.");
-                        // }
-                        // for (unsigned int i = 0; i < 20 - curr_file_name_length; i++) { // pads file name with '\0'
-                        //         printf("printing a pad 0\n");
-                        //         if (fwrite(&null_char, sizeof(char), 1, temp_archive) != 1) {
-                        //                 print_error_and_quit("Error: could not pad file_name while writing to temp_archive.");
-                        //         }
-                        // }
-                        // if (fwrite(&curr_file_size, sizeof(unsigned long long int), 1, temp_archive) != 1) {
-                        //         print_error_and_quit("Error: could not write curr_file_size to temp_archive.");
-                        // }
-                        // if (fwrite(&encrypted.IV, sizeof(char), AES_BLOCK_SIZE * sizeof(char), temp_archive) != 16) {
-                        //         print_error_and_quit("Error: could not write IV to temp_archive.");
-                        // }
-                        // if (fwrite(encrypted.ciphertext.data(), sizeof(char), encrypted.ciphertext.size(), 
-                        //            temp_archive) != encrypted.ciphertext.size()) {
-                        //         print_error_and_quit("Error: could not write ciphertext to temp_archive.");
-                        // }
-
+                for (const std::string& file_name : file_names) {
+                        // checks that file exists and is not empty. Then, it adds file_name and file_size to CStoreObject
+                        encrypt_and_add_file_to_CStoreObject(file_name);
                 }
-                // char new_signature[SHA256_BLOCK_SIZE] = "0123456789012345678901234567890";
                 calculate_new_signature(signature);
-                // memcpy(signature, new_signature, SHA256_BLOCK_SIZE);
-
-                // Check size of temp_archive
-                // long archive_size = ftell(temp_archive);
-                // printf("temp_archive size: %ld bytes\n", archive_size);
-
-                // fclose(temp_archive);
-                
-                // // Assigns new signature
-                // bool success = generate_hmac(
-                //         "temp_archive",
-                //         password.data(),
-                //         password.size(),
-                //         signature
-                //         );
-
-                // if (!success) {
-                //         print_error_and_quit("Error: generate_hmac failed.");
-                // }
-
-                // // remove temp_archive from the directory
-                // if (remove("temp_archive") != 0) {
-                //         print_error_and_quit("Error: Failed to delete temp_archive.");
-                // }
         }
 
 }
@@ -394,10 +307,4 @@ std::vector<unsigned long long int> CStoreObject::get_file_sizes() {
 
 std::vector<std::string> CStoreObject::get_encrypted_file_datas() {
         return encrypted_file_datas;
-}
-
-CStoreObject::~CStoreObject()
-{
- // deconstructor if you need it;
- // deconstructor is used to free up memory after the object goes out of scope or is explicitly destroyed by a cal to delete
 }

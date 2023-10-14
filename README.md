@@ -1,6 +1,4 @@
-When I run the ./cstore commands in my terminal, I am getting correct outputs. I am able to successfully list the files in the archive, am able to successfully add files to the archive, and am able to extract the files properly without errors. My code detects when the archive has been tampered with and it handles the edge cases listed in the spec. However, when I run the tests, I pass none of the tests.
-
-# **Part 3 Documentation:**
+# **Documentation**
 
 ## Archive Structure 
 
