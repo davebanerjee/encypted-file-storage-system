@@ -1,5 +1,6 @@
 #include "cstore_args.h"
 #include "cstore_object.h"
+#include <algorithm>
 
 
 void create_archive(CStoreObject cstore) {
@@ -81,6 +82,8 @@ int main(int argc, char* argv[])
 
                         // print all file names
                         std::vector<std::string> file_names = cstore.get_file_names();
+                        std::sort(file_names.begin(), file_names.end());
+
                         for (const std::string& file_name : file_names) {
                                 std::cout << file_name << std::endl;
                         }
@@ -163,10 +166,6 @@ int main(int argc, char* argv[])
 
                                         decrypted_content = decrypt_file("temp_file", args.get_password());
                                         remove("temp_file");
-
-                                        // print_hex(cstore.get_encrypted_file_datas()[file_name_idxs[i]].c_str(), cstore.get_file_sizes()[file_name_idxs[i]]);
-                                        // printf("%lld\n", cstore.get_file_sizes()[file_name_idxs[i]]);
-                                        // print_hex(decrypted_content.data(), decrypted_content.size());
 
                                         if(decrypted_content.size() != 0) {
                                                 write_data_to_file(file_names[file_name_idxs[i]], decrypted_content);

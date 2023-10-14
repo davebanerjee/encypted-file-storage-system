@@ -62,14 +62,6 @@ void CStoreObject::calculate_new_signature(char * new_signature) {
                 unsigned long long int curr_file_size = file_sizes[i];
                 const char* curr_file_data = encrypted_file_datas[i].c_str();
                 
-                // printf("In calculate_new_signature: filename is %s\n", curr_file_name);
-                // printf("In calculate_new_signature: filename size is %d\n", curr_file_name_length);
-                
-                
-                // printf("in calculate, we read currfiledata as: \n");
-                // print_hex(curr_file_data, curr_file_size);
-
-
                 if (fwrite(curr_file_name, sizeof(char), curr_file_name_length, temp_archive) != curr_file_name_length) { // write file name to archive
                         fclose(temp_archive);
                         print_error_and_quit("Error: could not write file_name to archive.");
@@ -197,10 +189,6 @@ CStoreObject::CStoreObject(CStoreArgs args, bool archive_exists) {
 
                         for (int i=0; i < SHA256_BLOCK_SIZE; i++) {
                                 if (signature[i] != new_signature[i]) {
-                                        // printf("signature from archive: ");
-                                        // fwrite(signature, sizeof(char), SHA256_BLOCK_SIZE, stdout);
-                                        // printf("\nnew_signature: ");
-                                        // fwrite(new_signature, sizeof(char), SHA256_BLOCK_SIZE, stdout);
                                         fclose(archive);
                                         print_error_and_quit("Signatures do not match. File has been tampered with.");
                                 }
@@ -233,8 +221,6 @@ CStoreObject::CStoreObject(CStoreArgs args, bool archive_exists) {
                                 fclose(archive);
                                 print_error_and_quit("Error: Could not read file_data from archive.");
                         }
-                        // printf("in norm, currfilename: %s", curr_file_name);
-                        // printf("in norm, strlen currfilename: %ld\n", strlen(curr_file_name));
 
                         // append what we've read so far
                         std::string curr_file_name_string(curr_file_name, 20);
@@ -243,9 +229,6 @@ CStoreObject::CStoreObject(CStoreArgs args, bool archive_exists) {
                         file_sizes.push_back(curr_file_size);
 
                         std::string curr_file_data_string(curr_file_data, curr_file_size);
-
-                        // printf("while extracting, we read currfiledata string as: \n");
-                        // print_hex(curr_file_data_string.c_str(), curr_file_data_string.size());
 
                         encrypted_file_datas.push_back(curr_file_data_string);
                 }

@@ -24,6 +24,8 @@ class CStoreObject
         std::vector<std::string>            file_names; // automatically deallocates memory
         std::vector<unsigned long long int> file_sizes; // we use unsigned long long int because it stores 8 bytes.
         std::vector<std::string>            encrypted_file_datas; // the first 16 bytes include the IV
+        void                                calculate_new_signature(char * new_signature);
+        void                                encrypt_and_add_file_to_CStoreObject(std::string file);
 
     public:
         void                                print_error_and_quit(std::string err);
@@ -34,8 +36,7 @@ class CStoreObject
         std::vector<std::string>            get_file_names();
         std::vector<unsigned long long int> get_file_sizes();
         std::vector<std::string>            get_encrypted_file_datas();
-        void                                calculate_new_signature(char * new_signature);
-        void                                encrypt_and_add_file_to_CStoreObject(std::string file);
+        
 
         CStoreObject(CStoreArgs args, bool archive_exists);
 };
