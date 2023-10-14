@@ -79,13 +79,15 @@ The function calculate_new_signature calculates the signature for an archive by 
         2. Add magic number (”./cstore”)
         3. Add num_files
     - If archive DOES exist: 
-        1. Error out
+        1. Read through existing archive and populate CStoreObject
+        2. Remove existing archive from current working directory
 2. Loop through files
     1. Add file name
     2. Add file size
     3. Encrypt file data using AES-CBC, which will generate IV and encrypted data
     3. Add file IV and file ciphertext
-3. After files have been added, we compute CStore signature by taking HMAC of the archive starting from num_files based on the file structure outlined in the last 2 pages of the spec
+3. After files have been added, we compute CStore signature by taking HMAC of the archive starting from byte 40
+4. Create archive file and populate using information from the newly populated CStoreObject
 
 ## Algorithm for Listing and Extracting Files in Archive
 
