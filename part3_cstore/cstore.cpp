@@ -81,7 +81,8 @@ int main(int argc, char* argv[])
         if (args.get_action() == "list") {
                 if (archive_exists) {
                         CStoreObject cstore = CStoreObject(args, archive_exists);
-                        
+                        std::cout << "List of files in the archive:" << std::endl;
+
                         // print all file names
                         std::vector<std::string> file_names = cstore.get_file_names();
                         for (const std::string& file_name : file_names) {
@@ -93,27 +94,32 @@ int main(int argc, char* argv[])
                         return EXIT_FAILURE;
                 }
         } else if (args.get_action() == "add") {
+                if (archive_exists) {
+                        std::cout << "Are you sure you want to overwrite the existing archive (yes/no)? ";
+                        std::string response;
+                        std::cin >> response;
+                        if (response == "yes" || response == "Yes" || response == "YES" || response == "Y" || response == "y") {
+
+                        } else if (response == "no" || response == "No" || response == "NO" || response == "N" || response == "n") {
+                                std::cout << "Please enter different archive name." << std::endl;
+                                return EXIT_SUCCESS;
+                        } else {
+                                std::cout << "Invalid response: please enter 'yes' or 'no'." << std::endl;
+                                return EXIT_FAILURE;
+                        }
+                }
                 CStoreObject cstore = CStoreObject(args, archive_exists);
                 create_archive(cstore);
+                std::cout << "Files succesfully added to archive." << std::endl;
         } else if (args.get_action() == "extract") {
                 if (archive_exists == false) {
                         std::cerr << "Archive does not exist." << std::endl;
                         return EXIT_FAILURE;
                 } else {
                         CStoreObject cstore = CStoreObject(args, archive_exists);
-                        // printf("Cstore object created: \n");
-                        // print_hex(cstore.get_encrypted_file_datas()[0].c_str(), cstore.get_file_sizes()[0]);
-                        // printf("create_archive begins: \n");
                         
                         std::vector<std::string> file_names_to_extract = args.get_files();
                         std::vector<std::string> file_names = cstore.get_file_names();
-                        // printf("\n\n IN EXTRACT_CSTORE \n\n");
-
-                        // if (file_names_to_extract[0] == file_names[0]) {
-                        //         printf("file names match!\n");
-                        // }
-                        // std::cout << "extracted file name length: " << file_names_to_extract[0].size() << std::endl;
-                        // std::cout << "file name length: " << strlen(file_names[0].c_str()) << std::endl;
 
                         // check that the files to extract are in fact in the archive
                         unsigned int idx;
@@ -176,45 +182,7 @@ int main(int argc, char* argv[])
                                 }
 
                         }
-
-                        // for (unsigned int i = 0; i < file_name_idxs.size(); i++) {
-                        //         FILE* temp_file = fopen("temp_file", "wb");
-                        //         printf("idx: %d\n", file_name_idxs[i]);
-                        //         if (temp_file == NULL) {
-                        //                 fclose(temp_file);
-                        //                 cstore.print_error_and_quit("Error: Could not open temp_file.");
-                        //         }
-                        //         // cstore.get_encrypted_file_datas()[0].c_str(), cstore.get_file_sizes()[0]
-                        //         const char* curr_encrypted_file_data = cstore.get_encrypted_file_datas()[file_name_idxs[i]].c_str();
-                        //         unsigned long long int curr_file_size = cstore.get_file_sizes()[file_name_idxs[i]];
-                        //         if (fwrite(curr_encrypted_file_data, sizeof(char), curr_file_size, temp_file) != curr_file_size) {
-                        //                 fclose(temp_file);
-                        //                 cstore.print_error_and_quit("Error: could not write curr_encrypted_file_data to temp_file.");
-                        //         }
-
-                        //         fclose(temp_file);
-
-                                
-                                
-                                
-
-
-                        //         decrypted_content = decrypt_file("temp_file", args.get_password());
-                        //         remove("temp_file");
-
-                        //         print_hex(curr_encrypted_file_data, curr_file_size);
-                        //         printf("%lld\n", curr_file_size);
-                        //         print_hex(decrypted_content.data(), decrypted_content.size());
-
-                        //         if(decrypted_content.size() != 0) {
-                        //                 write_data_to_file(file_names[i], decrypted_content);
-                        //         } else {
-                        //                 cstore.print_error_and_quit("Error: Could not decrypt file.");
-                        //         }
-                        // }
-
-
-
+                        std::cout << "Files extracted successfully." << std::endl;
                 }
         } else {
                 return EXIT_FAILURE;
