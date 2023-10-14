@@ -58,10 +58,6 @@ void create_archive(CStoreObject cstore) {
                 }
         }
 
-        // Check size of temp_archive
-        // long archive_size = ftell(archive);
-        // printf("archive size: %ld bytes\n", archive_size);
-
         fclose(archive);
 }
 
